@@ -19,10 +19,6 @@ function getYouTubeId(url) {
   return "";
 }
 
-const isIOS =
-  typeof navigator !== "undefined" &&
-  /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
 const YT_STATS_URL = "https://basketball-yt-stats-satish.azurewebsites.net/api/GetYouTubeStats";
 
 function App() {
@@ -315,80 +311,13 @@ function App() {
           <div style={{ ...cardStyles, marginBottom: 24 }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
               <div style={{ flex: "1 1 360px", minWidth: 320 }}>
-                {/* Embedded player */}
-              {(() => {
-                const vidId = getYouTubeId(selectedVideo.videoUrl);
-                const thumbUrl = vidId
-                  ? `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`
-                  : null;
+  {(() => {
+    const vidId = getYouTubeId(selectedVideo.videoUrl);
+    const thumbUrl = vidId
+      ? `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`
+      : null;
 
-                // --- iOS FALLBACK: Thumbnail + tap to open YouTube ---
-                if (isIOS) {
-                  return (
-                    <div
-                      style={{
-                        position: "relative",
-                        paddingBottom: "56.25%",
-                        height: 0,
-                        overflow: "hidden",
-                        borderRadius: 12,
-                        backgroundColor: "#000",
-                        cursor: "pointer",
-                      }}
-                      onClick={() =>
-                        window.open(
-                          selectedVideo.videoUrl,
-                          "_blank",
-                          "noopener,noreferrer"
-                        )
-                      }
-                    >
-                      {thumbUrl && (
-                        <img
-                          src={thumbUrl}
-                          alt={selectedVideo.title}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            borderRadius: 12,
-                          }}
-                        />
-                      )}
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                          width: 64,
-                          height: 64,
-                          borderRadius: "50%",
-                          backgroundColor: "rgba(0,0,0,0.6)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 0,
-                            height: 0,
-                            borderTop: "10px solid transparent",
-                            borderBottom: "10px solid transparent",
-                            borderLeft: "18px solid white",
-                            marginLeft: 4,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                }
-
-    // --- NON-iOS: Regular embedded player ---
+    // Single behavior for ALL platforms: clickable thumbnail that opens YouTube
     return (
       <div
         style={{
@@ -398,28 +327,62 @@ function App() {
           overflow: "hidden",
           borderRadius: 12,
           backgroundColor: "#000",
+          cursor: "pointer",
         }}
+        onClick={() =>
+          window.open(
+            selectedVideo.videoUrl,
+            "_blank",
+            "noopener,noreferrer"
+          )
+        }
       >
-        <iframe
-          title={selectedVideo.title}
-          src={`https://www.youtube.com/embed/${vidId}`}
+        {thumbUrl && (
+          <img
+            src={thumbUrl}
+            alt={selectedVideo.title}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              borderRadius: 12,
+            }}
+          />
+        )}
+        {/* Play overlay */}
+        <div
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            border: 0,
-            borderRadius: 12,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderTop: "10px solid transparent",
+              borderBottom: "10px solid transparent",
+              borderLeft: "18px solid white",
+              marginLeft: 4,
+            }}
+          />
+        </div>
       </div>
     );
   })()}
-
-              </div>
+</div>
 
               <div style={{ flex: "1 1 260px", minWidth: 260 }}>
                 <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>
@@ -451,27 +414,7 @@ function App() {
                 </p>
 
                 {/* Buttons */}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <a
-                    href={selectedVideo.videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <button style={primaryButtonStyles}>Watch on YouTube</button>
-                  </a>
-                  <button
-                    style={buttonStyles}
-                    onClick={() => {
-                      const videoId = getYouTubeId(selectedVideo.videoUrl);
-                      if (videoId) {
-                        const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                        window.open(thumbUrl, "_blank", "noopener,noreferrer");
-                      }
-                    }}
-                  >
-                    Open thumbnail
-                  </button>
-                </div>
+                
               </div>
             </div>
           </div>
