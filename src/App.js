@@ -43,10 +43,19 @@ function App() {
           <iframe
             width="360"
             height="215"
-            src={video.videoUrl.replace("youtu.be", "www.youtube.com/embed")}
+            src={
+              video.videoUrl
+                // handle short youtu.be links
+                .replace("https://youtu.be/", "https://www.youtube-nocookie.com/embed/")
+                // handle full youtube.com/watch?v= links if you ever use them
+                .replace("https://www.youtube.com/watch?v=", "https://www.youtube-nocookie.com/embed/")
+            }
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
             title={video.title}
           />
+
         </div>
       ))}
     </div>
