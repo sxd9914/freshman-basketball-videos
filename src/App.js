@@ -191,15 +191,6 @@ function App() {
     marginBottom: 16,
   };
 
-  const buttonStyles = {
-    padding: "8px 14px",
-    borderRadius: 999,
-    border: "1px solid #ccc",
-    backgroundColor: "#fff",
-    cursor: "pointer",
-    fontSize: 13,
-  };
-
   const chipStyles = {
     display: "inline-block",
     padding: "2px 8px",
