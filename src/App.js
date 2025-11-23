@@ -23,6 +23,8 @@ const isIOS =
   typeof navigator !== "undefined" &&
   /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+const YT_STATS_URL = "https://basketball-yt-stats-satish.azurewebsites.net/api/GetYouTubeStats";
+
 function App() {
   const [videos, setVideos] = useState([]);
   const [query, setQuery] = useState("");
@@ -31,20 +33,93 @@ function App() {
   const [selectedVideoId, setSelectedVideoId] = useState(null);
 
   useEffect(() => {
-    fetch("/videos.json")
-      .then((res) => res.json())
-      .then((data) => {
-        // sort newest -> oldest by date
-        const sorted = [...data].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
-        setVideos(sorted);
-        if (sorted.length > 0) {
-          setSelectedVideoId(sorted[0].id);
+  async function loadVideosAndStats() {
+    try {
+      console.log("Loading videos.json...");
+      const res = await fetch("/videos.json");
+      const data = await res.json();
+      console.log("Raw videos.json data:", data);
+
+      // Sort newest -> oldest
+      const sorted = [...data].sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+
+      // Collect unique YouTube IDs
+      const ids = sorted
+        .map((v) => {
+          const id = getYouTubeId(v.videoUrl);
+          if (!id) {
+            console.warn("No YouTube ID for video:", v);
+          }
+          return id;
+        })
+        .filter(Boolean);
+      const uniqueIds = Array.from(new Set(ids));
+      console.log("Unique YouTube IDs for stats:", uniqueIds);
+
+      let statsMap = {};
+      if (uniqueIds.length > 0 && YT_STATS_URL) {
+        try {
+          const url = `${YT_STATS_URL}?ids=${encodeURIComponent(
+            uniqueIds.join(",")
+          )}`;
+          console.log("Calling stats API:", url);
+
+          const statsRes = await fetch(url);
+          const textClone = await statsRes.clone().text(); // for debugging
+
+          if (statsRes.ok) {
+            try {
+              statsMap = JSON.parse(textClone);
+              console.log("Stats map from API:", statsMap);
+            } catch (parseErr) {
+              console.error("Failed to parse stats JSON:", parseErr, textClone);
+            }
+          } else {
+            console.warn(
+              "Failed to fetch YouTube stats:",
+              statsRes.status,
+              textClone
+            );
+          }
+        } catch (err) {
+          console.warn("Error fetching YouTube stats:", err);
         }
-      })
-      .catch((err) => console.error("Error loading videos.json", err));
-  }, []);
+      } else {
+        console.log("No IDs or YT_STATS_URL missing, skipping stats call.");
+      }
+
+      // Merge viewCount
+      const merged = sorted.map((v) => {
+        const id = getYouTubeId(v.videoUrl);
+        const dynamicViews =
+          id && statsMap[id] != null ? Number(statsMap[id]) : v.viewCount;
+
+        return {
+          ...v,
+          viewCount:
+            typeof dynamicViews === "number" && !Number.isNaN(dynamicViews)
+              ? dynamicViews
+              : 0,
+        };
+      });
+
+      console.log("Merged videos with viewCount:", merged);
+
+      setVideos(merged);
+      if (merged.length > 0) {
+        setSelectedVideoId(merged[0].id);
+      }
+    } catch (err) {
+      console.error("Error loading videos.json or stats:", err);
+    }
+  }
+
+  loadVideosAndStats();
+}, []);
+
+
 
   // Build list of unique opponents for dropdown
   const opponents = useMemo(() => {
