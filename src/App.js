@@ -200,13 +200,6 @@ function App() {
     fontSize: 13,
   };
 
-  const primaryButtonStyles = {
-    ...buttonStyles,
-    border: "none",
-    backgroundColor: "#2563eb",
-    color: "#fff",
-  };
-
   const chipStyles = {
     display: "inline-block",
     padding: "2px 8px",
