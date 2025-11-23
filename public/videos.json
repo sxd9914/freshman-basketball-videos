@@ -7,6 +7,19 @@
     "season": "2025-26",
     "videoUrl": "https://youtu.be/tvqUGh9p9eU?feature=shared",
     "tags": ["full game", "freshman"],
+    "viewCount": 1,
     "notes": "Pre-season scrimmage"
-  }
+  },
+  {
+  "id": "scrimmage1-highlights",
+  "title": "Scrimmage 1 Highlights – De La Salle vs Archbishop Mitty",
+  "date": "2025-11-22",
+  "opponent": "Archbishop Mitty",
+  "season": "2025-26",
+  "videoUrl": "https://youtu.be/IcaBKPxunQQ?feature=shared",
+  "tags": ["highlights", "freshman"],
+  "viewCount": 0,
+  "notes": "Short highlight reel"
+}
+
 ]
