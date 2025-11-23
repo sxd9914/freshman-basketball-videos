@@ -19,6 +19,10 @@ function getYouTubeId(url) {
   return "";
 }
 
+const isIOS =
+  typeof navigator !== "undefined" &&
+  /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 function App() {
   const [videos, setVideos] = useState([]);
   const [query, setQuery] = useState("");
@@ -237,33 +241,111 @@ function App() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
               <div style={{ flex: "1 1 360px", minWidth: 320 }}>
                 {/* Embedded player */}
-                <div
-                  style={{
-                    position: "relative",
-                    paddingBottom: "56.25%",
-                    height: 0,
-                    overflow: "hidden",
-                    borderRadius: 12,
-                    backgroundColor: "#000",
-                  }}
-                >
-                  <iframe
-  title={selectedVideo.title}
-  src={`https://www.youtube.com/embed/${getYouTubeId(selectedVideo.videoUrl)}`}
-  style={{
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    border: 0,
-    borderRadius: 12,
-  }}
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowFullScreen
-/>
+                <div style={{ flex: "1 1 360px", minWidth: 320 }}>
+  {(() => {
+    const vidId = getYouTubeId(selectedVideo.videoUrl);
+    const thumbUrl = vidId
+      ? `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`
+      : null;
 
-                </div>
+    // --- iOS FALLBACK: Thumbnail + tap to open YouTube ---
+    if (isIOS) {
+      return (
+        <div
+          style={{
+            position: "relative",
+            paddingBottom: "56.25%",
+            height: 0,
+            overflow: "hidden",
+            borderRadius: 12,
+            backgroundColor: "#000",
+            cursor: "pointer",
+          }}
+          onClick={() =>
+            window.open(
+              selectedVideo.videoUrl,
+              "_blank",
+              "noopener,noreferrer"
+            )
+          }
+        >
+          {thumbUrl && (
+            <img
+              src={thumbUrl}
+              alt={selectedVideo.title}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                borderRadius: 12,
+              }}
+            />
+          )}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderTop: "10px solid transparent",
+                borderBottom: "10px solid transparent",
+                borderLeft: "18px solid white",
+                marginLeft: 4,
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // --- NON-iOS: Regular embedded player ---
+    return (
+      <div
+        style={{
+          position: "relative",
+          paddingBottom: "56.25%",
+          height: 0,
+          overflow: "hidden",
+          borderRadius: 12,
+          backgroundColor: "#000",
+        }}
+      >
+        <iframe
+          title={selectedVideo.title}
+          src={`https://www.youtube.com/embed/${vidId}`}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            border: 0,
+            borderRadius: 12,
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+    );
+  })()}
+</div>
+
               </div>
 
               <div style={{ flex: "1 1 260px", minWidth: 260 }}>
