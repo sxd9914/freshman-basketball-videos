@@ -248,31 +248,21 @@ function App() {
                   }}
                 >
                   <iframe
-                    title={selectedVideo.title}
-                    src={
-                      selectedVideo.videoUrl
-                        .replace(
-                          "https://youtu.be/",
-                          "https://www.youtube-nocookie.com/embed/"
-                        )
-                        .replace(
-                          "https://www.youtube.com/watch?v=",
-                          "https://www.youtube-nocookie.com/embed/"
-                        )
-                    }
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      border: 0,
-                      borderRadius: 12,
-                    }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    referrerPolicy="strict-origin-when-cross-origin"
-                  />
+  title={selectedVideo.title}
+  src={`https://www.youtube.com/embed/${getYouTubeId(selectedVideo.videoUrl)}`}
+  style={{
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    border: 0,
+    borderRadius: 12,
+  }}
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  allowFullScreen
+/>
+
                 </div>
               </div>
 
