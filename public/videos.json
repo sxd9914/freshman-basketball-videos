@@ -1,7 +1,7 @@
 [
   {
     "id": "scrimmage1",
-    "title": "De La Salle vs Archbishop Mitty – Scrimmage 1",
+    "title": "De La Salle vs Archbishop Mitty – Scrimmage",
     "date": "2025-11-22",
     "opponent": "Archbishop Mitty",
     "season": "2025-26",
@@ -20,6 +20,28 @@
   "tags": ["highlights", "freshman"],
   "viewCount": 0,
   "notes": "Short highlight reel"
-}
+  },
+  {
+    "id": "scrimmage2",
+    "title": "De La Salle vs Bishop O'Dowd – Scrimmage",
+    "date": "2025-11-25",
+    "opponent": "Bishop O'Dwod",
+    "season": "2025-26",
+    "videoUrl": "https://youtu.be/uOlH9fgmP-Y?si=IfwUU39Tx_UKV2za",
+    "tags": ["full game", "freshman"],
+    "viewCount": 0,
+    "notes": "Pre-season scrimmage"
+  },
+  {
+  "id": "scrimmage2-highlights",
+  "title": "Scrimmage 2 Highlights – De La Salle vs Bishop O'Dwod",
+  "date": "2025-11-25",
+  "opponent": "Bishop O'Dwod",
+  "season": "2025-26",
+  "videoUrl": "https://youtu.be/k29G7ErCLRw?si=Za1STk5-3pQPIF9h",
+  "tags": ["highlights", "freshman"],
+  "viewCount": 0,
+  "notes": "Short highlight reel"
+ }
 
 ]
