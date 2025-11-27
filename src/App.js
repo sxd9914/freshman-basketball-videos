@@ -19,6 +19,17 @@ function getYouTubeId(url) {
   return "";
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 const YT_STATS_URL = "https://basketball-yt-stats-satish.azurewebsites.net/api/GetYouTubeStats";
 
 const PLAYLIST_API_URL =
@@ -32,6 +43,8 @@ function App() {
   const [selectedOpponent, setSelectedOpponent] = useState("all");
   const [tagFilter, setTagFilter] = useState("all"); // all | full | highlights
   const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState("all");
+  const [sortBy, setSortBy] = useState("dateDesc"); // dateDesc | dateAsc | opponent | viewsDesc
 
  useEffect(() => {
   async function loadVideosAndStats() {
@@ -120,8 +133,46 @@ function App() {
   loadVideosAndStats();
 }, []);
 
+// Auto-refresh YouTube view counts every 10 minutes
+useEffect(() => {
+  if (!YT_STATS_URL || videos.length === 0) return;
 
+  const interval = setInterval(async () => {
+    try {
+      const ids = Array.from(
+        new Set(
+          videos
+            .map((v) => getYouTubeId(v.videoUrl))
+            .filter(Boolean)
+        )
+      );
+      if (ids.length === 0) return;
 
+      const joinChar = YT_STATS_URL.includes("?") ? "&" : "?";
+      const statsRes = await fetch(
+        `${YT_STATS_URL}${joinChar}ids=${encodeURIComponent(ids.join(","))}`
+      );
+      if (!statsRes.ok) return;
+
+      const statsMap = await statsRes.json();
+
+      setVideos((current) =>
+        current.map((v) => {
+          const id = getYouTubeId(v.videoUrl);
+          if (!id || statsMap[id] == null) return v;
+          return {
+            ...v,
+            viewCount: Number(statsMap[id]),
+          };
+        })
+      );
+    } catch (err) {
+      console.warn("Auto-refresh stats error:", err);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+
+  return () => clearInterval(interval);
+}, [videos, YT_STATS_URL]);
 
   // Build list of unique opponents for dropdown
   const opponents = useMemo(() => {
@@ -132,33 +183,71 @@ function App() {
     return ["all", ...Array.from(set).sort()];
   }, [videos]);
 
+  const seasons = useMemo(() => {
+  const set = new Set();
+  videos.forEach((v) => {
+    if (v.season) set.add(v.season);
+  });
+  return ["all", ...Array.from(set).sort()];
+  }, [videos]);
+
   // Apply all filters + search
-  const filteredVideos = useMemo(() => {
-    return videos.filter((v) => {
-      const q = query.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        v.title.toLowerCase().includes(q) ||
-        (v.opponent || "").toLowerCase().includes(q) ||
-        (v.notes || "").toLowerCase().includes(q);
+const filteredVideos = useMemo(() => {
+  const base = videos.filter((v) => {
+    const q = query.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      v.title.toLowerCase().includes(q) ||
+      (v.opponent || "").toLowerCase().includes(q) ||
+      (v.notes || "").toLowerCase().includes(q);
 
-      const matchesOpponent =
-        selectedOpponent === "all" || v.opponent === selectedOpponent;
+    const matchesOpponent =
+      selectedOpponent === "all" || v.opponent === selectedOpponent;
 
-      const tags = (v.tags || []).map((t) => t.toLowerCase());
+    const matchesSeason =
+      selectedSeason === "all" || v.season === selectedSeason;
 
-      const matchesTag =
-        tagFilter === "all"
-          ? true
-          : tagFilter === "full"
-          ? tags.includes("full game")
-          : tagFilter === "highlights"
-          ? tags.includes("highlights")
-          : true;
+    const tagsLower = (v.tags || []).map((t) => t.toLowerCase());
+    const matchesTag =
+      tagFilter === "all"
+        ? true
+        : tagFilter === "full"
+        ? tagsLower.includes("full game")
+        : tagFilter === "highlights"
+        ? tagsLower.includes("highlights")
+        : true;
 
-      return matchesSearch && matchesOpponent && matchesTag;
-    });
-  }, [videos, query, selectedOpponent, tagFilter]);
+    return matchesSearch && matchesOpponent && matchesSeason && matchesTag;
+  });
+
+  // sort
+  const sorted = [...base].sort((a, b) => {
+    if (sortBy === "dateAsc") {
+      return new Date(a.date || 0) - new Date(b.date || 0);
+    }
+    if (sortBy === "dateDesc") {
+      return new Date(b.date || 0) - new Date(a.date || 0);
+    }
+    if (sortBy === "opponent") {
+      return (a.opponent || "").localeCompare(b.opponent || "");
+    }
+    if (sortBy === "viewsDesc") {
+      const va = a.viewCount || 0;
+      const vb = b.viewCount || 0;
+      return vb - va;
+    }
+    return 0;
+  });
+
+  return sorted;
+}, [
+  videos,
+  query,
+  selectedOpponent,
+  selectedSeason,
+  tagFilter,
+  sortBy,
+]);
 
   const selectedVideo = filteredVideos.find((v) => v.id === selectedVideoId) ||
     filteredVideos[0] ||
@@ -175,27 +264,64 @@ function App() {
     }
   }, [filteredVideos, selectedVideo, selectedVideoId]);
 
-  const pageStyles = {
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    backgroundColor: "#f5f5f5",
-    minHeight: "100vh",
-    margin: 0,
-    padding: 0,
-  };
+const pageStyles = {
+  fontFamily:
+    "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  backgroundColor: "#020617", // near-black
+  minHeight: "100vh",
+  margin: 0,
+  padding: 0,
+  color: "#e5e7eb",
+};
 
-  const containerStyles = {
-    maxWidth: 1100,
-    margin: "0 auto",
-    padding: "24px 16px 40px",
-  };
+const containerStyles = {
+  maxWidth: 1100,
+  margin: "0 auto",
+  padding: "24px 16px 40px",
+};
 
-  const cardStyles = {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-    padding: 20,
-    marginBottom: 16,
+const cardStyles = {
+  background:
+    "radial-gradient(circle at top left, #22c55e20, #020617 55%, #0f172a 100%)",
+  borderRadius: 16,
+  border: "1px solid #1f2937",
+  boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+  padding: 20,
+  marginBottom: 16,
+};
+const baseChipStyles = {
+  display: "inline-block",
+  padding: "2px 8px",
+  borderRadius: 999,
+  fontSize: 11,
+  marginRight: 6,
+};
+
+function chipStylesForTag(tag) {
+  const t = tag.toLowerCase();
+  if (t.includes("full game")) {
+    return {
+      ...baseChipStyles,
+      backgroundColor: "#166534",
+      color: "#bbf7d0",
+      border: "1px solid #22c55e",
+    };
+  }
+  if (t.includes("highlights")) {
+    return {
+      ...baseChipStyles,
+      backgroundColor: "#facc15",
+      color: "#000000",
+      border: "1px solid #f97316",
+    };
+  }
+  return {
+    ...baseChipStyles,
+    backgroundColor: "#1f2937",
+    color: "#e5e7eb",
+    border: "1px solid #4b5563",
   };
+}
 
   const chipStyles = {
     display: "inline-block",
@@ -246,54 +372,116 @@ function App() {
           />
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <label
-                style={{ fontSize: 12, textTransform: "uppercase", color: "#777" }}
-              >
-                Opponent
-              </label>
-              <br />
-              <select
-                value={selectedOpponent}
-                onChange={(e) => setSelectedOpponent(e.target.value)}
-                style={{
-                  padding: 8,
-                  borderRadius: 8,
-                  border: "1px solid #ccc",
-                  minWidth: 140,
-                }}
-              >
-                {opponents.map((opp) => (
-                  <option key={opp} value={opp}>
-                    {opp === "all" ? "All opponents" : opp}
-                  </option>
-                ))}
-              </select>
-            </div>
+  {/* Opponent */}
+  <div>
+    <label
+      style={{ fontSize: 12, textTransform: "uppercase", color: "#94a3b8" }}
+    >
+      Opponent
+    </label>
+    <br />
+    <select
+      value={selectedOpponent}
+      onChange={(e) => setSelectedOpponent(e.target.value)}
+      style={{
+        padding: 8,
+        borderRadius: 8,
+        border: "1px solid #334155",
+        minWidth: 140,
+        backgroundColor: "#020617",
+        color: "white",
+      }}
+    >
+      {opponents.map((opp) => (
+        <option key={opp} value={opp}>
+          {opp === "all" ? "All opponents" : opp}
+        </option>
+      ))}
+    </select>
+  </div>
 
-            <div>
-              <label
-                style={{ fontSize: 12, textTransform: "uppercase", color: "#777" }}
-              >
-                Type
-              </label>
-              <br />
-              <select
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                style={{
-                  padding: 8,
-                  borderRadius: 8,
-                  border: "1px solid #ccc",
-                  minWidth: 140,
-                }}
-              >
-                <option value="all">All</option>
-                <option value="full">Full games only</option>
-                <option value="highlights">Highlights only</option>
-              </select>
-            </div>
-          </div>
+  {/* Season */}
+  <div>
+    <label
+      style={{ fontSize: 12, textTransform: "uppercase", color: "#94a3b8" }}
+    >
+      Season
+    </label>
+    <br />
+    <select
+      value={selectedSeason}
+      onChange={(e) => setSelectedSeason(e.target.value)}
+      style={{
+        padding: 8,
+        borderRadius: 8,
+        border: "1px solid #334155",
+        minWidth: 140,
+        backgroundColor: "#020617",
+        color: "white",
+      }}
+    >
+      {seasons.map((s) => (
+        <option key={s} value={s}>
+          {s === "all" ? "All seasons" : s}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* Type */}
+  <div>
+    <label
+      style={{ fontSize: 12, textTransform: "uppercase", color: "#94a3b8" }}
+    >
+      Type
+    </label>
+    <br />
+    <select
+      value={tagFilter}
+      onChange={(e) => setTagFilter(e.target.value)}
+      style={{
+        padding: 8,
+        borderRadius: 8,
+        border: "1px solid #334155",
+        minWidth: 140,
+        backgroundColor: "#020617",
+        color: "white",
+      }}
+    >
+      <option value="all">All</option>
+      <option value="full">Full games only</option>
+      <option value="highlights">Highlights only</option>
+    </select>
+  </div>
+
+  {/* Sort */}
+  <div>
+    <label
+      style={{ fontSize: 12, textTransform: "uppercase", color: "#94a3b8" }}
+    >
+      Sort
+    </label>
+    <br />
+    <select
+      value={sortBy}
+      onChange={(e) => setSortBy(e.target.value)}
+      style={{
+        padding: 8,
+        borderRadius: 8,
+        border: "1px solid #334155",
+        minWidth: 160,
+        backgroundColor: "#020617",
+        color: "white",
+      }}
+    >
+      <option value="dateDesc">Newest first</option>
+      <option value="dateAsc">Oldest first</option>
+      <option value="opponent">Opponent (A–Z)</option>
+      <option value="viewsDesc">Most viewed</option>
+    </select>
+  </div>
+</div>
+
         </div>
 
         {/* Selected video player */}
@@ -379,7 +567,7 @@ function App() {
                   {selectedVideo.title}
                 </h2>
                 <p style={{ margin: "0 0 4px", color: "#555", fontSize: 14 }}>
-                  {selectedVideo.date} · vs {selectedVideo.opponent} · Season{" "}
+                  {formatDate(selectedVideo.date)} · vs {selectedVideo.opponent} · Season{" "}
                   {selectedVideo.season}
                 </p>
                 <p style={{ margin: "0 0 8px", color: "#777", fontSize: 13 }}>
@@ -389,11 +577,12 @@ function App() {
                 {/* tags */}
                 <div style={{ marginBottom: 10 }}>
                   {(selectedVideo.tags || []).map((tag) => (
-                    <span key={tag} style={chipStyles}>
+                    <span key={tag} style={chipStylesForTag(tag)}>
                       {tag}
                     </span>
                   ))}
                 </div>
+
 
                 {/* view count */}
                 <p style={{ margin: "0 0 12px", color: "#555", fontSize: 13 }}>
@@ -470,7 +659,7 @@ function App() {
         </h3>
 
         <p style={{ margin: 0, fontSize: 9, color: "#666" }}>
-          {video.date}
+          {formatDate(video.date)}
         </p>
       </div>
     );
