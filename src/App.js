@@ -172,7 +172,7 @@ useEffect(() => {
   }, 10 * 60 * 1000); // 10 minutes
 
   return () => clearInterval(interval);
-}, [videos, YT_STATS_URL]);
+}, [videos]);
 
   // Build list of unique opponents for dropdown
   const opponents = useMemo(() => {
@@ -322,16 +322,7 @@ function chipStylesForTag(tag) {
     border: "1px solid #4b5563",
   };
 }
-
-  const chipStyles = {
-    display: "inline-block",
-    padding: "2px 8px",
-    borderRadius: 999,
-    fontSize: 11,
-    backgroundColor: "#eef2ff",
-    color: "#4f46e5",
-    marginRight: 6,
-  };
+  
 
   return (
     <div style={pageStyles}>
