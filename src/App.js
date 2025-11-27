@@ -21,6 +21,11 @@ function getYouTubeId(url) {
 
 const YT_STATS_URL = "https://basketball-yt-stats-satish.azurewebsites.net/api/GetYouTubeStats";
 
+const PLAYLIST_API_URL =
+  "https://basketball-yt-stats-satish.azurewebsites.net/api/GetPlaylistVideos"; 
+const PLAYLIST_ID = "PLRY5pRvItPFXx8bIvugFmMLMFWgZaHRJd";     // replace with actual ID
+
+
 function App() {
   const [videos, setVideos] = useState([]);
   const [query, setQuery] = useState("");
@@ -28,65 +33,65 @@ function App() {
   const [tagFilter, setTagFilter] = useState("all"); // all | full | highlights
   const [selectedVideoId, setSelectedVideoId] = useState(null);
 
-  useEffect(() => {
+ useEffect(() => {
   async function loadVideosAndStats() {
     try {
-      console.log("Loading videos.json...");
-      const res = await fetch("/videos.json");
-      const data = await res.json();
-      console.log("Raw videos.json data:", data);
+      // 1) Load videos from YouTube playlist via Azure Function
+      console.log("Loading playlist videos...");
+      const playlistRes = await fetch(
+        `${PLAYLIST_API_URL}?playlistId=${encodeURIComponent(PLAYLIST_ID)}`
+      );
+      if (!playlistRes.ok) {
+        console.error(
+          "Failed to load playlist videos:",
+          playlistRes.status,
+          await playlistRes.text()
+        );
+        return;
+      }
+
+      const playlistData = await playlistRes.json();
+      console.log("Playlist videos:", playlistData);
 
       // Sort newest -> oldest
-      const sorted = [...data].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
+      const sorted = [...playlistData].sort(
+        (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
       );
 
-      // Collect unique YouTube IDs
+      // 2) Collect unique YouTube IDs
       const ids = sorted
-        .map((v) => {
-          const id = getYouTubeId(v.videoUrl);
-          if (!id) {
-            console.warn("No YouTube ID for video:", v);
-          }
-          return id;
-        })
+        .map((v) => getYouTubeId(v.videoUrl))
         .filter(Boolean);
       const uniqueIds = Array.from(new Set(ids));
-      console.log("Unique YouTube IDs for stats:", uniqueIds);
+      console.log("Unique IDs for stats:", uniqueIds);
 
       let statsMap = {};
       if (uniqueIds.length > 0 && YT_STATS_URL) {
         try {
-          const url = `${YT_STATS_URL}?ids=${encodeURIComponent(
+          const statsUrl = `${YT_STATS_URL}?ids=${encodeURIComponent(
             uniqueIds.join(",")
           )}`;
-          console.log("Calling stats API:", url);
+          console.log("Calling stats API:", statsUrl);
 
-          const statsRes = await fetch(url);
-          const textClone = await statsRes.clone().text(); // for debugging
+          const statsRes = await fetch(statsUrl);
+          const statsText = await statsRes.clone().text();
 
           if (statsRes.ok) {
-            try {
-              statsMap = JSON.parse(textClone);
-              console.log("Stats map from API:", statsMap);
-            } catch (parseErr) {
-              console.error("Failed to parse stats JSON:", parseErr, textClone);
-            }
+            statsMap = JSON.parse(statsText);
+            console.log("Stats map:", statsMap);
           } else {
             console.warn(
-              "Failed to fetch YouTube stats:",
+              "Failed to fetch stats:",
               statsRes.status,
-              textClone
+              statsText
             );
           }
         } catch (err) {
           console.warn("Error fetching YouTube stats:", err);
         }
-      } else {
-        console.log("No IDs or YT_STATS_URL missing, skipping stats call.");
       }
 
-      // Merge viewCount
+      // 3) Merge stats into videos
       const merged = sorted.map((v) => {
         const id = getYouTubeId(v.videoUrl);
         const dynamicViews =
@@ -101,19 +106,20 @@ function App() {
         };
       });
 
-      console.log("Merged videos with viewCount:", merged);
+      console.log("Final merged videos:", merged);
 
       setVideos(merged);
       if (merged.length > 0) {
         setSelectedVideoId(merged[0].id);
       }
     } catch (err) {
-      console.error("Error loading videos.json or stats:", err);
+      console.error("Error loading playlist videos or stats:", err);
     }
   }
 
   loadVideosAndStats();
 }, []);
+
 
 
 
