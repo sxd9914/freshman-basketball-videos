@@ -21,6 +21,23 @@ function getYouTubeId(url) {
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
+
+  // If it's just YYYY-MM-DD, treat it as a local date (avoid UTC shift)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split("-");
+    const d = new Date(
+      Number(year),
+      Number(month) - 1, // JS months are 0-based
+      Number(day)
+    );
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  // Fallback for full ISO strings like 2025-11-22T18:00:00Z
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("en-US", {
@@ -29,6 +46,7 @@ function formatDate(dateStr) {
     year: "numeric",
   });
 }
+
 
 const YT_STATS_URL = "https://basketball-yt-stats-satish.azurewebsites.net/api/GetYouTubeStats";
 
